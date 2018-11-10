@@ -18,6 +18,7 @@ def float_positive(value_str):
          raise argparse.ArgumentTypeError("%s is not a positive value" % value_str)
     return float_positive
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('-n', '--interval', dest='interval',
@@ -25,11 +26,22 @@ if __name__ == "__main__":
                         default=60,
                         help='Logging interval in seconds. Default is 60.')
 
+    parser.add_argument('outfile', nargs='?', type=argparse.FileType('wt'), default=None)
+
     args = parser.parse_args()
+
+    if args.outfile is None:
+        outfile=sys.stdout
+    else:
+        outfile=args.outfile
+
 
     # Gracefully shut down on signal
     signal.signal(signal.SIGINT, sighandler_int)
 
     while True:
-        print("{}\t{}".format(time.time(), vcgencmd.measure_temp()))
+        print("{}\t{}".format(time.time(), vcgencmd.measure_temp()), file=outfile)
         time.sleep(args.interval)
+
+    
+
