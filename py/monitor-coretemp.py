@@ -4,13 +4,17 @@ import sys
 import time
 import signal
 import argparse
+import threading
 
 # https://github.com/nicmcd/vcgencmd
 import vcgencmd
 
-def sighandler_int(signum, frame):
-    print("Received SIGINT, Goodbye!", file=sys.stderr)
-    sys.exit()
+
+exit_event = threading.Event()
+
+def shutdown_handler(signum, frame):
+    print("Received %s, shutting down..." % signal.Signals(signum).name, file=sys.stderr)
+    exit_event.set()
 
 def float_positive(value_str):
     float_positive = float(value_str)
@@ -26,7 +30,7 @@ if __name__ == "__main__":
                         default=60,
                         help='Logging interval in seconds. Default is 60.')
 
-    parser.add_argument('outfile', nargs='?', type=argparse.FileType('wt'), default=None)
+    parser.add_argument('outfile', nargs='?', type=argparse.FileType('at'), default=None)
 
     args = parser.parse_args()
 
@@ -35,13 +39,12 @@ if __name__ == "__main__":
     else:
         outfile=args.outfile
 
-
     # Gracefully shut down on signal
-    signal.signal(signal.SIGINT, sighandler_int)
+    signal.signal(signal.SIGINT, shutdown_handler)
+    signal.signal(signal.SIGHUP, shutdown_handler)
+    signal.signal(signal.SIGTERM, shutdown_handler)
 
-    while True:
+    while not exit_event.is_set():
         print("{}\t{}".format(time.time(), vcgencmd.measure_temp()), file=outfile)
-        time.sleep(args.interval)
-
-    
+        exit_event.wait(args.interval)
 
