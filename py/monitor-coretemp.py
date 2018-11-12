@@ -5,6 +5,7 @@ import time
 import signal
 import argparse
 import threading
+import contextlib
 
 # https://github.com/nicmcd/vcgencmd
 import vcgencmd
@@ -22,6 +23,10 @@ def float_positive(value_str):
          raise argparse.ArgumentTypeError("%s is not a positive value" % value_str)
     return float_positive
 
+@contextlib.contextmanager
+def nullcontext(enter_result):
+    yield enter_result
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='')
@@ -35,9 +40,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.outfile is None:
-        outfile=sys.stdout
+        outfilename=None
     else:
-        outfile=args.outfile
+        outfilename=args.outfile.name
 
     # Gracefully shut down on signal
     signal.signal(signal.SIGINT, shutdown_handler)
@@ -45,6 +50,8 @@ if __name__ == "__main__":
     signal.signal(signal.SIGTERM, shutdown_handler)
 
     while not exit_event.is_set():
-        print("{}\t{}".format(time.time(), vcgencmd.measure_temp()), file=outfile)
+        with (open(outfilename, "at") if outfilename is not None else
+                nullcontext(sys.stdout)) as outfile:
+            print("{}\t{}".format(time.time(), vcgencmd.measure_temp()), file=outfile)
         exit_event.wait(args.interval)
 
