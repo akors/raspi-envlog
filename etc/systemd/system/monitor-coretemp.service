@@ -1,0 +1,7 @@
+[Unit]
+Description=Log SoC core temperature
+
+[Service]
+# PYTHONUNBUFFERED required to see the script output
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/opt/virtualenvs/envlog/bin/python3 /usr/local/bin/monitor-coretemp.py -n 60 /var/log/corempts.txt
