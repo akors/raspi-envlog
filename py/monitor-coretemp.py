@@ -43,6 +43,7 @@ if __name__ == "__main__":
         outfilename=None
     else:
         outfilename=args.outfile.name
+        args.outfile.close()
 
     # Gracefully shut down on signal
     signal.signal(signal.SIGINT, shutdown_handler)
