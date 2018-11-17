@@ -1,17 +1,39 @@
 #!/usr/bin/env python3
 
 import sys
-import time
+import time, datetime
 import signal
-import argparse
+import configparser
 import threading
-import contextlib
+
+from influxdb import InfluxDBClient
 
 # https://github.com/nicmcd/vcgencmd
 import vcgencmd
 
 
+THISCONF = 'monitor-coretemp'
+CONFIGPATH = '/etc/raspi-envlog.conf'
+
+config = configparser.ConfigParser(interpolation=None)
+
+# default config values
+
+config['db'] = {
+  'host': "localhost",
+  'port': "8086",
+  'database': "envlog",
+  # 'user' : 'root',
+  # 'password' : 'root'
+}
+
+config[THISCONF] = {
+    'interval': 60
+}
+
+# waiting on this event to exit
 exit_event = threading.Event()
+
 
 def shutdown_handler(signum, frame):
     print("Received %s, shutting down..." % signal.Signals(signum).name, file=sys.stderr)
@@ -23,36 +45,51 @@ def float_positive(value_str):
          raise argparse.ArgumentTypeError("%s is not a positive value" % value_str)
     return float_positive
 
-@contextlib.contextmanager
-def nullcontext(enter_result):
-    yield enter_result
-
-
 if __name__ == "__main__":
+    import argparse
     parser = argparse.ArgumentParser(description='')
     parser.add_argument('-n', '--interval', dest='interval',
                         action='store', type=float_positive,
-                        default=60,
-                        help='Logging interval in seconds. Default is 60.')
+                        help='Logging interval in seconds')
+    parser.add_argument('-c', '--config', dest='configfile',
+                        action='store', type=str, default=CONFIGPATH,
+                        help='Config file location')
 
-    parser.add_argument('outfile', nargs='?', type=argparse.FileType('at'), default=None)
 
     args = parser.parse_args()
+    
+    with open(args.configfile, 'rt') as configfile:
+        # read config from file
+        config.read_file(configfile, source=CONFIGPATH)
+    
+    interval = args.interval if args.interval is not None else config.getfloat(THISCONF, 'interval')
 
-    if args.outfile is None:
-        outfilename=None
-    else:
-        outfilename=args.outfile.name
-        args.outfile.close()
-
-    # Gracefully shut down on signal
+    # Register handlers for Gracefully shut down on signal
     signal.signal(signal.SIGINT, shutdown_handler)
     signal.signal(signal.SIGHUP, shutdown_handler)
     signal.signal(signal.SIGTERM, shutdown_handler)
+      
+    dbclient = InfluxDBClient(
+        config['db']['host'],
+        config.getint('db', 'port'),
+        config['db']['username'],
+        config['db']['password'],
+        config['db']['database'])
+        
+    dbclient.create_database(config['db']['database'])
+    print("Database connection established.", file=sys.stderr)
 
+    # prepare points struct. Instead of creating a new one, we will be reusing this
+    points = [{
+        "measurement": "coretemp",
+        "time": None,
+        "fields": { "value": None }
+    }]
+    
     while not exit_event.is_set():
-        with (open(outfilename, "at") if outfilename is not None else
-                nullcontext(sys.stdout)) as outfile:
-            print("{}\t{}".format(time.time(), vcgencmd.measure_temp()), file=outfile)
-        exit_event.wait(args.interval)
+        points[0]["time"] = datetime.datetime.now(datetime.timezone.utc).astimezone().isoformat()
+        points[0]["fields"]["value"] = vcgencmd.measure_temp()
+        dbclient.write_points(points)
+        exit_event.wait(interval)
+
 
