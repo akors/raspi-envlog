@@ -61,7 +61,7 @@ if __name__ == "__main__":
     
     with open(args.configfile, 'rt') as configfile:
         # read config from file
-        config.read_file(configfile, source=CONFIGPATH)
+        config.read_file(configfile, source=args.configfile)
     
     interval = args.interval if args.interval is not None else config.getfloat(THISCONF, 'interval')
 
