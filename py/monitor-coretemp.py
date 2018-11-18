@@ -55,6 +55,7 @@ if __name__ == "__main__":
                         action='store', type=str, default=CONFIGPATH,
                         help='Config file location')
 
+    parser.add_argument('--sd_notify', action='store_true')
 
     args = parser.parse_args()
     
@@ -76,7 +77,7 @@ if __name__ == "__main__":
         config['db']['password'],
         config['db']['database'])
         
-    dbclient.create_database(config['db']['database'])
+    #dbclient.create_database(config['db']['database'])
     print("Database connection established.", file=sys.stderr)
 
     # prepare points struct. Instead of creating a new one, we will be reusing this
@@ -86,10 +87,26 @@ if __name__ == "__main__":
         "fields": { "value": None }
     }]
     
+
+    # if requested, signal to systemd that startup has succeeded
+    sd_notifier = None
+    if args.sd_notify:
+        import sdnotify
+        sd_notifier = sdnotify.SystemdNotifier()
+        sd_notifier.notify("READY=1")
+
     while not exit_event.is_set():
+        # Get Time and value
         points[0]["time"] = datetime.datetime.now(datetime.timezone.utc).astimezone().isoformat()
         points[0]["fields"]["value"] = vcgencmd.measure_temp()
+
+        # writeout to database
         dbclient.write_points(points)
+
+        # Set systemd status if requested
+        if sd_notifier is not None:
+            sd_notifier.notify("STATUS=SoC temp: {} C".format(points[0]["fields"]["value"]))
+
         exit_event.wait(interval)
 
 

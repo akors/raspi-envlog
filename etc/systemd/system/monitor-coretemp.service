@@ -1,7 +1,18 @@
 [Unit]
 Description=Log SoC core temperature
+Requires=influxdb.service
+After=influxdb.service
+
+# Don't restart too often
+StartLimitIntervalSec=120
+StartLimitBurst=3
 
 [Service]
+Type=notify
 # PYTHONUNBUFFERED required to see the script output
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/opt/virtualenvs/envlog/bin/python3 /usr/local/bin/monitor-coretemp.py -n 60 /var/log/corempts.txt
+ExecStart=/opt/virtualenvs/envlog/bin/python3 /usr/local/bin/monitor-coretemp.py --sd_notify
+# Restart if something went wrong
+Restart=on-failure
+RestartSec=30
+
