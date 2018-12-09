@@ -1,0 +1,6 @@
+[Unit]
+Description=Raspberry Pi environment monitoring
+Wants=envlog-monitor.service
+
+[Install]
+WantedBy=multi-user.target
