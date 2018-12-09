@@ -11,7 +11,7 @@ StartLimitBurst=3
 Type=notify
 # PYTHONUNBUFFERED required to see the script output
 Environment=PYTHONUNBUFFERED=1
-ExecStart=/opt/virtualenvs/envlog/bin/python3 /usr/local/bin/monitor-coretemp.py --sd_notify
+ExecStart=/opt/virtualenvs/envlog/bin/python3 /usr/local/bin/envlog-monitor.py --sd_notify
 # Restart if something went wrong
 Restart=on-failure
 RestartSec=30
