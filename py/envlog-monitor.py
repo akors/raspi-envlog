@@ -1,19 +1,16 @@
 #!/usr/bin/env python3
 
 import sys
-import time, datetime
 import signal
 import configparser
 import threading
-import Adafruit_DHT
 
 from influxdb import InfluxDBClient
 
-# https://github.com/nicmcd/vcgencmd
-import vcgencmd
+from raspi_envlog import sensor_coretemp
+from raspi_envlog import sensor_dht22
 
-
-THISCONF = 'monitor-coretemp'
+THISCONF = 'monitor'
 CONFIGPATH = '/etc/raspi-envlog.conf'
 
 config = configparser.ConfigParser(interpolation=None)
@@ -42,11 +39,13 @@ def shutdown_handler(signum, frame):
     print("Received %s, shutting down..." % signal.Signals(signum).name, file=sys.stderr)
     exit_event.set()
 
+
 def float_positive(value_str):
     float_positive = float(value_str)
     if float_positive <= 0:
          raise argparse.ArgumentTypeError("%s is not a positive value" % value_str)
     return float_positive
+
 
 if __name__ == "__main__":
     import argparse
@@ -83,13 +82,8 @@ if __name__ == "__main__":
     #dbclient.create_database(config['db']['database'])
     print("Database connection established.", file=sys.stderr)
 
-    # prepare points struct. Instead of creating a new one, we will be reusing this
-    points = [{
-        "measurement": "coretemp",
-        "time": None,
-        "fields": { "value": None }
-    }]
-
+    dht22_sensor = sensor_dht22.Sensor(config)
+    core_sensor = sensor_coretemp.Sensor(config)
 
     # if requested, signal to systemd that startup has succeeded
     sd_notifier = None
@@ -99,41 +93,10 @@ if __name__ == "__main__":
         sd_notifier.notify("READY=1")
 
     while not exit_event.is_set():
-        del points[:]
+        points = list()
 
-        coretemp = vcgencmd.measure_temp()
-        meas_time = datetime.datetime.now(datetime.timezone.utc).astimezone().isoformat()
-        points.append({
-            "measurement": "coretemp",
-            "time": meas_time,
-            "fields": { "value": coretemp }
-        })
-
-
-        (humidity, room_temp) = Adafruit_DHT.read_retry(Adafruit_DHT.AM2302, GPIO_PIN_DHT22)
-        meas_time = datetime.datetime.now(datetime.timezone.utc).astimezone().isoformat()
-
-        # round temperature to the nearest decimal, since we only get 1 decimal point of precision from the sensor
-
-        points.append({
-            "measurement": "temperature",
-            "time": meas_time,
-            "tags" : {
-                "sensor" : "DHT22",
-                "sensor_id" : GPIO_PIN_DHT22
-            },
-            "fields": { "value": int(room_temp*10+.5)/10 }
-        })
-
-        points.append({
-            "measurement": "humidity",
-            "tags" : {
-                "sensor" : "DHT22",
-                "sensor_id" : GPIO_PIN_DHT22
-            },
-            "time": meas_time,
-            "fields": { "value": int(humidity*10+.5)/10 }
-        })
+        points.extend(core_sensor.measure())
+        points.extend(dht22_sensor.measure())
 
         # writeout to database
         dbclient.write_points(points)
