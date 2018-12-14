@@ -11,6 +11,6 @@ setup(name='raspi-envlog',
       url='https://github.com/akors/raspi-envlog',
       packages=['raspi_envlog'],
       package_dir={'': 'py'},
-      scripts=[os.path.join('py/envlog-monitor.py')],
+      scripts=[os.path.join('py/envlog-monitor')],
       requires=['sdnotify', 'vcgencmd', 'Adafruit_DHT']
      )
