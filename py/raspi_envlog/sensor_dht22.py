@@ -28,7 +28,8 @@ class Sensor:
 
             # Sometimes we get crap values from the sensor. Try to detect these
             # and skip the readings
-            if math.isnan(humidity) or math.isnan(temperature) or humidity > 100.0:
+            if humidity is None or temperature is None or  \
+                math.isnan(humidity) or math.isnan(temperature) or humidity > 100.0:
                 continue
 
             measurements.append({
