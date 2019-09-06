@@ -12,5 +12,9 @@ setup(name='raspi-envlog',
       packages=['raspi_envlog'],
       package_dir={'': 'py'},
       scripts=[os.path.join('py/envlog-monitor')],
-      requires=['sdnotify', 'vcgencmd', 'Adafruit_DHT']
+      install_requires=[
+        'influxdb',
+        'sdnotify',
+        'vcgencmd @ https://github.com/nicmcd/vcgencmd/tarball/master',
+        'Adafruit_DHT'],
      )
