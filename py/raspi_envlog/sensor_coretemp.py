@@ -14,6 +14,7 @@ class Sensor:
 
     def measure(self):
         coretemp = vcgencmd.measure_temp()
+        clock_core = vcgencmd.measure_clock("core")
         timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
         measurements = list()
@@ -21,6 +22,12 @@ class Sensor:
             "measurement": "coretemp",
             "time": timestamp,
             "fields": { "value": coretemp }
+        })
+
+        measurements.append({
+            "measurement": "clock_core",
+            "time": timestamp,
+            "fields": { "value": clock_core }
         })
 
         return measurements
