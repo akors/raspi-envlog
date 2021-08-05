@@ -9,6 +9,7 @@ from influxdb import InfluxDBClient
 
 from raspi_envlog import sensor_coretemp
 from raspi_envlog import sensor_dht22
+from raspi_envlog import sensor_ping
 
 THISCONF = 'monitor'
 CONFIGPATH = '/etc/raspi-envlog.conf'
@@ -95,9 +96,12 @@ if __name__ == "__main__":
 
     #dbclient.create_database(config['db']['database'])
     print("Database connection established.", file=sys.stderr)
-
-    dht22_sensor = sensor_dht22.Sensor(config)
-    core_sensor = sensor_coretemp.Sensor(config)
+    sensors = {
+        'dht22': sensor_dht22.Sensor(config),
+        'coretemp': sensor_coretemp.Sensor(config),
+        'ping': sensor_ping.Sensor(config)
+    }
+    print("Sensors initialized", file=sys.stderr)
 
     # if requested, signal to systemd that startup has succeeded
     sd_notifier = None
@@ -109,8 +113,8 @@ if __name__ == "__main__":
     while not exit_event.is_set():
         points = list()
 
-        points.extend(core_sensor.measure())
-        points.extend(dht22_sensor.measure())
+        for sensor in sensors.values():
+            points.extend(sensor.measure())
 
         if args.print:
             print_points(points)
