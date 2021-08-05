@@ -4,7 +4,7 @@ import os
 from distutils.core import setup
 
 setup(name='raspi-envlog',
-      version='1.0',
+      version='1.1',
       description='Raspberry Pi environment logger',
       author='Alexander Korsunsky',
       author_email='a.korsunsky@gmail.com',
