@@ -16,5 +16,6 @@ setup(name='raspi-envlog',
         'influxdb',
         'sdnotify',
         'vcgencmd @ https://github.com/nicmcd/vcgencmd/tarball/master',
-        'Adafruit_DHT'],
+        'Adafruit_DHT',
+        'icmplib']
      )
