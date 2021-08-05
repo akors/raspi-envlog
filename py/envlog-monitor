@@ -29,10 +29,23 @@ config[THISCONF] = {
     'interval': 60
 }
 
+
 GPIO_PIN_DHT22 = 17
 
 # waiting on this event to exit
 exit_event = threading.Event()
+
+def print_points(points: dict):
+    for point in points:
+        name = point['measurement']
+        time = point['time']
+        value = point['fields']['value']
+        if 'tags' in point:
+            tags = ",".join(f"{k}={v}" for k, v in point['tags'].items())
+        else:
+            tags = ""
+
+        print(f"{time};{tags};{name};{value}")
 
 
 def shutdown_handler(signum, frame):
@@ -56,6 +69,7 @@ if __name__ == "__main__":
     parser.add_argument('-c', '--config', dest='configfile',
                         action='store', type=str, default=CONFIGPATH,
                         help='Config file location')
+    parser.add_argument('-p', '--print', action='store_true', help="Print measurements to console")
 
     parser.add_argument('--sd_notify', action='store_true')
 
@@ -97,6 +111,9 @@ if __name__ == "__main__":
 
         points.extend(core_sensor.measure())
         points.extend(dht22_sensor.measure())
+
+        if args.print:
+            print_points(points)
 
         # writeout to database
         dbclient.write_points(points)
