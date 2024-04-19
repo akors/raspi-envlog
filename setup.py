@@ -4,7 +4,7 @@ import os
 from distutils.core import setup
 
 setup(name='raspi-envlog',
-      version='1.1',
+      version='1.2',
       description='Raspberry Pi environment logger',
       author='Alexander Korsunsky',
       author_email='a.korsunsky@gmail.com',
@@ -16,6 +16,6 @@ setup(name='raspi-envlog',
         'influxdb',
         'sdnotify',
         'vcgencmd @ https://github.com/nicmcd/vcgencmd/tarball/master',
-        'Adafruit_DHT',
+        'adafruit-circuitpython-dht',
         'icmplib']
      )
