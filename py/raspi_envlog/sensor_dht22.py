@@ -19,6 +19,9 @@ class Sensor:
         # read device configuration
         self.__devices = json.loads(config["sensor_dht22"].get("devices"))
 
+        # how many times to attempt the measurement
+        self.__max_retries = int(config["sensor_dht22"]["retries"])
+
         # convert pin to adafruit_dht device object
         for sn, pin in self.__devices.items():
             adafruit_pin = getattr(board, pin)
@@ -28,21 +31,29 @@ class Sensor:
         measurements = list()
 
         for sn, dev in self.__devices.items():
-            try:
-                temperature = dev.temperature
-                humidity = dev.humidity
-            except RuntimeError as error:
-                # Errors happen fairly often, DHT's are hard to read, just keep going
-                print("Failed to read sensor ", sn, ": ", error.args[0])
+            # retry loop
+            for trycount in range(self.__max_retries):
+                try:
+                    temperature = dev.temperature
+                    humidity = dev.humidity
+                    
+                    timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
+
+                    # Sometimes we get crap values from the sensor. Try to detect these
+                    # and skip the readings
+                    if humidity is None or temperature is None or  \
+                        math.isnan(humidity) or math.isnan(temperature) or humidity > 100.0:
+                        continue
+
+                    break
+                except RuntimeError as error:
+                    # Errors happen fairly often, DHT's are hard to read, just keep going
+                    lasterror = error
+                    continue
+            else:
+                print(f"Failed to read sensor {sn} after {trycount} retries:", lasterror.args[0])
                 continue
 
-            timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
-
-            # Sometimes we get crap values from the sensor. Try to detect these
-            # and skip the readings
-            if humidity is None or temperature is None or  \
-                math.isnan(humidity) or math.isnan(temperature) or humidity > 100.0:
-                continue
 
             measurements.append({
                 "measurement": "temperature",
