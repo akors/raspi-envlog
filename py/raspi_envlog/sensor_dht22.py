@@ -43,15 +43,16 @@ class Sensor:
                     # and skip the readings
                     if humidity is None or temperature is None or  \
                         math.isnan(humidity) or math.isnan(temperature) or humidity > 100.0:
+                        lasterror = "Successful read but invalid sensor value"
                         continue
 
                     break
                 except RuntimeError as error:
                     # Errors happen fairly often, DHT's are hard to read, just keep going
-                    lasterror = error
+                    lasterror = error.args[0]
                     continue
             else:
-                print(f"Failed to read sensor {sn} after {trycount} retries:", lasterror.args[0])
+                print(f"Failed to read sensor {sn} after {trycount} retries: {lasterror}")
                 continue
 
 
