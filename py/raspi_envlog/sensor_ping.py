@@ -11,10 +11,12 @@ THISCONF = 'sensor_ping'
 class Sensor:
     def __init__(self, config: configparser.ConfigParser):
         self.destinations = [t.strip() for t in config[THISCONF]['destinations'].split(',')]
+        self.ping_count = int(config[THISCONF]["count"])
+        self.ping_interval = float(config[THISCONF]["interval"])
         pass
 
     def measure(self):
-        replies = icmplib.multiping(self.destinations, count=10, interval=1, privileged=False)
+        replies = icmplib.multiping(self.destinations, count=self.ping_count, interval=1, privileged=False)
         timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
 
 
