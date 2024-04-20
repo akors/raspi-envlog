@@ -10,7 +10,13 @@
             "request": "launch",
             "program": "./py/envlog-monitor",
             "console": "integratedTerminal",
-            "args": ["--print", "--interval", "30"]
+            "args": [
+                "--print",
+                "--interval",
+                "10",
+                "--config",
+                "${workspaceFolder}/etc/raspi-envlog.conf"
+            ]
         }
     ]
 }
